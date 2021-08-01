@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+service ImageStore {
+	rpc Upload(UploadImageRequest) returns (ResponseMessage);
+}
+message UploadImageRequest{
+	string fileName = 1;
+	string fileExtension = 2;
+    bytes data = 3;
+}
+
+message ResponseMessage{
+	string data = 1;
+}
