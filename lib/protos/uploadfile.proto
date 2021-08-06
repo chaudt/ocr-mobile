@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+service UploadImage{
+   rpc UploadImage(stream UploadImageRequest) returns (Void){}; 
+}
+message UploadImageRequest{
+    string fileName = 1; //tên file có đuôi file
+    string fileNameWithoutExtension = 2; // tên file không có đuôi
+    bytes data = 3;
+}
+
+message Void{}

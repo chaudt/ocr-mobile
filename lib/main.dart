@@ -1,17 +1,23 @@
-import 'dart:convert';
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'dart:io';
 // ignore: import_of_legacy_library_into_null_safe
 import 'package:image_picker/image_picker.dart';
-import 'package:grpc/grpc.dart';
-import '../protos/fileUpload.pb.dart';
-import '../protos/fileUpload.pbgrpc.dart';
+import 'package:orc_mobile/common/connectGrpc.dart';
+import 'package:orc_mobile/service/upload_File.dart';
 
 void main() {
+  HttpOverrides.global = new MyHttpOverrides();
   runApp(MyApp());
+}
+
+class MyHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..badCertificateCallback =
+          (X509Certificate cert, String host, int port) => true;
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -98,7 +104,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     backgroundColor: Colors.black,
                   ),
                   onPressed: () {
-                    UploadImage(bytes);
+                    UploadFileService.uploadFile(
+                        GrpcClientSingleton().channel, imageFile);
                   },
                   child: Text(
                     "Submit Image",
@@ -117,12 +124,10 @@ class _MyHomePageState extends State<MyHomePage> {
     PickedFile? pickedFile =
         // ignore: deprecated_member_use
         await ImagePicker().getImage(source: ImageSource.gallery);
-
     // ignore: unnecessary_null_comparison
     if (pickedFile != null) {
       setState(() {
         imageFile = File(pickedFile.path);
-        bytes = imageFile.readAsBytesSync();
       });
     }
   }
@@ -135,28 +140,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (pickedFile != null) {
       setState(() {
         imageFile = File(pickedFile.path);
-        bytes = imageFile.readAsBytesSync();
       });
     }
-  }
-
-  late ClientChannel channel;
-  late ImageStoreClient stub;
-
-  Future<void> UploadImage(List<int> bytes) async {
-    channel = ClientChannel('localhost',
-        port: 5004,
-        options: // No credentials in this example
-            const ChannelOptions(credentials: ChannelCredentials.insecure()));
-    stub = ImageStoreClient(channel,
-        options: CallOptions(timeout: Duration(seconds: 30)));
-    try {
-      var clientRequest = UploadImageRequest(
-          fileName: 'imagehinhAnh', fileExtension: '.jpg', data: bytes);
-      await stub.upload(clientRequest);
-    } catch (e) {
-      print(e);
-    }
-    await channel.shutdown();
   }
 }
